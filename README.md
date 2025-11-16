@@ -1,6 +1,6 @@
 # 🔐 Google OAuth Test Project
 
-A complete Google OAuth2 authentication system with FastAPI backend and vanilla JavaScript frontend. Includes automatic token refresh, session management, and secure token storage.
+A complete Google OAuth2 authentication system with FastAPI backend and React frontend. Includes automatic token refresh, session management, and secure token storage.
 
 ## 📋 Features
 
@@ -10,13 +10,14 @@ A complete Google OAuth2 authentication system with FastAPI backend and vanilla 
 - ✅ Session Management (in-memory for testing)
 - ✅ Gmail, Calendar, and Tasks API Access
 - ✅ Clean, Modern UI
-- ✅ No frontend framework required
+- ✅ React Frontend with Vite
 
 ## 🛠️ Prerequisites
 
 Before you begin, ensure you have the following installed:
 
 - **Python 3.8+** ([Download](https://www.python.org/downloads/))
+- **Node.js & npm** ([Download](https://nodejs.org/))
 - **Google Cloud Project** with OAuth2 credentials
 
 ## 📦 Project Structure
@@ -24,7 +25,7 @@ Before you begin, ensure you have the following installed:
 ```
 google-oauth-test-project/
 ├── backend/
-│   ├── auth_backend.py          # FastAPI backend
+│   ├── auth_backend.py          # Main FastAPI backend application
 │   ├── requirements.txt         # Python dependencies
 │   ├── .env.example            # Environment variables template
 │   └── .gitignore              # Git ignore file
@@ -32,11 +33,19 @@ google-oauth-test-project/
 │   ├── index.html              # Main HTML file
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── GoogleAuthButton.jsx  # React component
-│   │   └── utils/
-│   │       └── authTokenManager.js   # Token manager
+│   │   │   └── GoogleAuthButton.jsx  # React component for Google Auth
+│   │   ├── pages/
+│   │   │   ├── LoginSignupPage.jsx   # Login/Signup page
+│   │   │   └── ProfilePage.jsx       # User profile page
+│   │   ├── utils/
+│   │   │   └── authTokenManager.js   # Token manager utility
+│   │   ├── App.jsx                 # Main React application component
+│   │   ├── main.jsx                # React entry point
+│   │   └── index.css               # Global styles
 │   ├── .env.example            # Environment variables template
-│   └── .gitignore              # Git ignore file
+│   ├── .gitignore              # Git ignore file
+│   ├── package.json            # Frontend dependencies
+│   └── vite.config.js          # Vite configuration
 └── README.md
 ```
 
@@ -125,11 +134,7 @@ google-oauth-test-project/
    GOOGLE_REDIRECT_URI=http://localhost:8050/api/auth/google/callback
    
    # Frontend URL
-   FRONTEND_URL=http://localhost:3032
-   
-   # MongoDB (default is fine for local testing)
-   MONGO_URL=mongodb://localhost:27017/
-   DATABASE_NAME=google_auth_db
+   FRONTEND_URL=http://localhost:5173
    
    # Paste your encryption key from Step 3.4
    ENCRYPTION_KEY=YOUR_ENCRYPTION_KEY_HERE
@@ -145,8 +150,6 @@ google-oauth-test-project/
    
    You should see:
    ```
-   ✅ Successfully connected to MongoDB
-   ✅ Database indexes created
    INFO:     Uvicorn running on http://0.0.0.0:8050
    ```
 
@@ -173,43 +176,49 @@ The frontend uses Vite for development.
    ```
      VITE v5.x.x  ready in XXX ms
    
-     ➜  Local:   http://localhost:3032/
+     ➜  Local:   http://localhost:5173/
      ➜  Network: use --host to expose
      ➜  press h + enter to show help
    ```
  
 4. **Open browser**
-   - Navigate to: **http://localhost:3032** (or the port shown in the terminal)
+   - Navigate to: **http://localhost:5173** (or the port shown in the terminal)
  
 ## 🎯 Testing the Application
  
 ### Test Complete OAuth Flow (Pop-up)
  
-1. **Open** http://localhost:3032 in your browser
+1. **Open** http://localhost:5173 in your browser
  
 2. **Click "Sign in with Google"**
     - A pop-up window will appear for Google's login page
     - Sign in with your Google account
-    - Grant permissions (you may see a warning if app is not verified - click "Advanced" → "Go to OAuth Test Project")
+    - If you have previously granted permissions, you should not be prompted again.
+    - If you are prompted, select your account.
  
-3. **After authorization**
+3. **Click "Sign up with Google"**
+    - A pop-up window will appear for Google's login page
+    - Sign in with your Google account
+    - You should be prompted to grant permissions (consent screen).
+ 
+4. **After authorization**
     - The pop-up window will close automatically
     - The main window will update, and you should see your profile (name, email, picture)
  
-4. **Test logout**
+5. **Test logout**
     - Click "Logout" button
     - You should be logged out
     - Tokens are revoked on the backend
  
-5. **Test session persistence**
+6. **Test session persistence**
     - Login again
     - Close and reopen browser
-    - Navigate to http://localhost:3032
+    - Navigate to http://localhost:5173
     - You should still be logged in (session restored)
  
 ### Verify Backend
  
-1. **Check backend logs** for successful operations (run `python server.py` in the `backend` directory):
+1. **Check backend logs** for successful operations (run `python auth_backend.py` in the `backend` directory):
    ```
    INFO:     Uvicorn running on http://0.0.0.0:8050
    ```
@@ -237,8 +246,8 @@ The frontend uses Vite for development.
  
 **Solution:**
 - Make sure backend is running on port 8050
-- Make sure frontend is running on port 3032 (or the port shown by `npm run dev`)
-- Check [`backend/server.py`](backend/server.py:26) has correct CORS origins
+- Make sure frontend is running on port 5173 (or the port shown by `npm run dev`)
+- Check [`backend/auth_backend.py`](backend/auth_backend.py:26) has correct CORS origins
  
 ### Issue: "Access blocked: This app's request is invalid"
  
@@ -252,13 +261,13 @@ The frontend uses Vite for development.
  
 **Solution:**
 ```bash
-# Find process using port (e.g., 3032 for frontend, 8050 for backend)
+# Find process using port (e.g., 5173 for frontend, 8050 for backend)
 # Windows:
-netstat -ano | findstr :3032
+netstat -ano | findstr :5173
 taskkill /PID <PID> /F
  
 # Mac/Linux:
-lsof -i :3032
+lsof -i :5173
 kill -9 <PID>
  
 # Or change the port in frontend/vite.config.js or backend/.env
@@ -305,7 +314,7 @@ fetch('https://www.googleapis.com/gmail/v1/users/me/messages', {
  
 ### Change Scopes
  
-Edit [`backend/server.py`](backend/server.py:219) to modify requested permissions:
+Edit [`backend/auth_backend.py`](backend/auth_backend.py:219) to modify requested permissions:
  
 ```python
 "scope": " ".join([
@@ -327,19 +336,19 @@ Edit [`frontend/src/App.jsx`](frontend/src/App.jsx:1) or other React components 
 - **Token Expiry**: Access tokens expire after 1 hour (auto-refreshed)
 - **Refresh Tokens**: Don't expire but can be revoked by user
 - **Storage**: Sessions stored in-memory for testing purposes. For production, consider a persistent database.
-
+ 
 ## 🤝 Need Help?
-
+ 
 For issues or questions:
 1. Check the Troubleshooting section above
 2. Review backend logs for error messages
 3. Check browser console for frontend errors
 4. Verify all environment variables are set correctly
-
+ 
 ## 📄 License
-
+ 
 MIT License - feel free to use this project for learning and development!
-
+ 
 ---
-
+ 
 **Happy Testing! 🚀**

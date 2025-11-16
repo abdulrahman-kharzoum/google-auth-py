@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import authTokenManager from '../utils/authTokenManager';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8050';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8050';
 
 /**
  * Google OAuth2 Login Button Component
  * Handles the complete OAuth flow with automatic token management
  */
-const GoogleAuthButton = ({ onLoginSuccess, onLoginError }) => {
+const GoogleAuthButton = ({ onLoginSuccess, onLoginError, type = "login" }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState(null);
 
@@ -28,7 +28,7 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError }) => {
       const { authStatus, userId, error } = event.data;
 
       if (authStatus === 'success' && userId) {
-        handleOAuthCallback(userId);
+        onLoginSuccess(userId); // Pass userId directly to onLoginSuccess
       } else if (error) {
         console.error('OAuth error from pop-up:', error);
         if (onLoginError) {
@@ -55,7 +55,7 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError }) => {
         const userData = authTokenManager.getUser();
         setUser(userData);
         if (onLoginSuccess) {
-          onLoginSuccess(userData);
+          onLoginSuccess(userData.user_id); // Pass userId directly to onLoginSuccess
         }
       }
     } catch (error) {
@@ -87,7 +87,7 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError }) => {
       setUser(userData);
       
       if (onLoginSuccess) {
-        onLoginSuccess(userData);
+        onLoginSuccess(userData.user_id); // Pass userId directly to onLoginSuccess
       }
       
       console.log('✅ Login successful:', userData);
@@ -107,8 +107,11 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError }) => {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      // Get authorization URL from backend
-      const response = await fetch(`${BACKEND_URL}/api/auth/google/login`);
+      // Determine the prompt based on the type prop
+      const promptValue = type === "signup" ? "consent" : "select_account";
+
+      // Get authorization URL from backend, including the prompt parameter
+      const response = await fetch(`${BACKEND_URL}/api/auth/google/login?prompt=${promptValue}`);
       
       if (!response.ok) {
         throw new Error('Failed to initiate login');
@@ -201,7 +204,7 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError }) => {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          Sign in with Google
+          {type === "signup" ? "Sign up with Google" : "Sign in with Google"}
         </>
       )}
     </button>

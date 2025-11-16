@@ -189,7 +189,7 @@ async def root():
     }
 
 @app.get("/api/auth/google/login")
-async def google_login():
+async def google_login(prompt: Optional[str] = "consent"):
     """
     Initiate Google OAuth2 login flow
     Returns the authorization URL for the frontend to redirect to
@@ -199,7 +199,8 @@ async def google_login():
     # Store state with timestamp for validation
     oauth_states[state] = {
         "created_at": datetime.utcnow().isoformat(),
-        "type": "login"
+        "type": "login",
+        "prompt": prompt # Store the prompt type
     }
     
     # Build authorization URL
@@ -218,7 +219,7 @@ async def google_login():
             "https://www.googleapis.com/auth/tasks",
         ]),
         "access_type": "offline",
-        "prompt": "consent",
+        "prompt": prompt, # Use the passed prompt value
         "state": state
     }
     

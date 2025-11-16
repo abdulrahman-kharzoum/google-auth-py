@@ -3,7 +3,7 @@
  * Handles automatic token refresh and storage
  */
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8050';
 
 class AuthTokenManager {
   constructor() {
@@ -11,6 +11,7 @@ class AuthTokenManager {
     this.accessToken = null;
     this.refreshToken = null;
     this.expiresAt = null;
+    this.scopes = []; // Initialize scopes
     this.refreshTimer = null;
   }
 
@@ -32,6 +33,7 @@ class AuthTokenManager {
           this.accessToken = session.access_token;
           this.refreshToken = session.refresh_token;
           this.expiresAt = new Date(session.expires_at);
+          this.scopes = session.scopes || []; // Store scopes
           
           // Start auto-refresh
           this.scheduleTokenRefresh();
@@ -63,6 +65,7 @@ class AuthTokenManager {
     this.accessToken = userData.access_token;
     this.refreshToken = userData.refresh_token;
     this.expiresAt = new Date(userData.expires_at);
+    this.scopes = userData.scopes || []; // Store scopes
     
     // Store user ID in localStorage
     localStorage.setItem('user_id', userData.user_id);
@@ -83,6 +86,27 @@ class AuthTokenManager {
    */
   getUser() {
     return this.user;
+  }
+
+  /**
+   * Get current refresh token
+   */
+  getRefreshToken() {
+    return this.refreshToken;
+  }
+
+  /**
+   * Get token expiry time
+   */
+  getExpiresAt() {
+    return this.expiresAt;
+  }
+
+  /**
+   * Get current scopes
+   */
+  getScopes() {
+    return this.scopes;
   }
 
   /**
@@ -133,6 +157,7 @@ class AuthTokenManager {
         // Calculate new expiry time
         const expiresIn = data.tokens.expires_in || 3600;
         this.expiresAt = new Date(Date.now() + expiresIn * 1000);
+        this.scopes = data.tokens.scope ? data.tokens.scope.split(' ') : []; // Update scopes
         
         // Update user info
         if (data.user) {
@@ -211,6 +236,7 @@ class AuthTokenManager {
     this.accessToken = null;
     this.refreshToken = null;
     this.expiresAt = null;
+    this.scopes = [];
     
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);

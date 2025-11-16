@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import './index.css'
 import LoginSignupPage from './pages/LoginSignupPage'
 import ProfilePage from './pages/ProfilePage'
+import authTokenManager from './utils/authTokenManager'
 
 const BACKEND_URL = 'http://localhost:8050'
 
@@ -26,188 +27,147 @@ function App() {
     const error = urlParams.get('error')
 
     if (authStatus === 'success' && userId) {
-      await handleOAuthCallback(userId)
-      window.history.replaceState({}, document.title, window.location.pathname)
+      // After successful OAuth, initialize authTokenManager and update App state
+      const initialized = await authTokenManager.initialize(userId);
+      if (initialized) {
+        updateAppStateFromAuthManager();
+        localStorage.setItem('user_id', userId);
+        showMessage('Login successful!', 'success');
+        setTimeout(() => setStatusMessage(''), 2000);
+      } else {
+        showMessage('Login failed: Could not initialize session.', 'error');
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
     } else if (error) {
-      showMessage(`Login Error: ${decodeURIComponent(error)}`, 'error')
-      window.history.replaceState({}, document.title, window.location.pathname)
+      showMessage(`Login Error: ${decodeURIComponent(error)}`, 'error');
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }
+  };
 
   const checkExistingSession = async () => {
-    const storedUserId = localStorage.getItem('user_id')
+    const storedUserId = localStorage.getItem('user_id');
     if (storedUserId) {
-      await validateSession(storedUserId)
+      setIsLoading(true);
+      showMessage('Restoring session...', 'info');
+      try {
+        const initialized = await authTokenManager.initialize(storedUserId);
+        if (initialized) {
+          updateAppStateFromAuthManager();
+          console.log('✅ SESSION RESTORED');
+          showMessage('Session restored!', 'success');
+          setTimeout(() => setStatusMessage(''), 2000);
+        } else {
+          localStorage.removeItem('user_id');
+          setUser(null);
+          setAccessToken(null);
+          setRefreshToken(null);
+          showMessage('Session expired or invalid. Please log in again.', 'error');
+        }
+      } catch (error) {
+        console.error('Error restoring session:', error);
+        localStorage.removeItem('user_id');
+        setUser(null);
+        setAccessToken(null);
+        setRefreshToken(null);
+        showMessage(`Error restoring session: ${error.message}`, 'error');
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }
+  };
 
   const handleOAuthCallback = async (userId) => {
-    setIsLoading(true)
-    showMessage('Processing login...', 'info')
-    
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/user/${userId}`)
-      
-      if (!response.ok) {
-        throw new Error('Failed to get user session')
-      }
+    // This function is now primarily for initial login handling,
+    // the actual session initialization is done in checkAuthCallback
+    // and checkExistingSession.
+    // We just need to ensure the App state is updated.
+    updateAppStateFromAuthManager();
+  };
 
-      const sessionData = await response.json()
-      
-      // Store user data
-      const userData = {
-        user_id: sessionData.user_id,
-        email: sessionData.email,
-        name: sessionData.name,
-        picture: sessionData.picture
-      }
-      
-      setUser(userData)
-      setAccessToken(sessionData.access_token)
-      setRefreshToken(sessionData.refresh_token)
-      localStorage.setItem('user_id', userId)
-      
-      // Log to console
-      console.log('✅ LOGIN SUCCESSFUL')
-      console.log('User:', userData)
-      console.log('Access Token:', sessionData.access_token)
-      console.log('Refresh Token:', sessionData.refresh_token)
-      console.log('Expires At:', sessionData.expires_at)
-      console.log('Scopes:', sessionData.scopes)
-      
-      showMessage('Login successful!', 'success')
-      setTimeout(() => setStatusMessage(''), 2000)
-    } catch (error) {
-      console.error('OAuth callback error:', error)
-      showMessage(`Login failed: ${error.message}`, 'error')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const updateAppStateFromAuthManager = () => {
+    const userData = authTokenManager.getUser();
+    setUser(userData);
+    setAccessToken(authTokenManager.getAccessToken());
+    setRefreshToken(authTokenManager.getRefreshToken());
+
+    console.log('User:', userData);
+    console.log('Access Token:', authTokenManager.getAccessToken());
+    console.log('Refresh Token:', authTokenManager.getRefreshToken());
+    console.log('Expires At:', authTokenManager.getExpiresAt());
+    console.log('Scopes:', authTokenManager.getScopes());
+  };
 
   const validateSession = async (userId) => {
+    // This function is no longer needed as authTokenManager.initialize handles validation
+    // and session retrieval.
+    // However, we keep it for now to avoid breaking other parts if it's called elsewhere.
+    // It will be refactored or removed in a later step if confirmed unused.
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/validate?user_id=${userId}`)
-      const data = await response.json()
+      const response = await fetch(`${BACKEND_URL}/api/auth/validate?user_id=${userId}`);
+      const data = await response.json();
       
       if (data.valid && data.user) {
-        setUser(data.user)
-        
-        // Get full session data
-        const sessionResponse = await fetch(`${BACKEND_URL}/api/auth/user/${userId}`)
-        if (sessionResponse.ok) {
-          const session = await sessionResponse.json()
-          setAccessToken(session.access_token)
-          setRefreshToken(session.refresh_token)
-          
-          console.log('✅ SESSION RESTORED')
-          console.log('User:', data.user)
-          console.log('Access Token:', session.access_token)
-          console.log('Refresh Token:', session.refresh_token)
-        }
+        // If valid, ensure authTokenManager is initialized and update App state
+        await authTokenManager.initialize(userId);
+        updateAppStateFromAuthManager();
       } else {
-        localStorage.removeItem('user_id')
-        setUser(null)
-        setAccessToken(null)
-        setRefreshToken(null)
+        localStorage.removeItem('user_id');
+        setUser(null);
+        setAccessToken(null);
+        setRefreshToken(null);
       }
     } catch (error) {
-      console.error('Session validation error:', error)
-      localStorage.removeItem('user_id')
-      setUser(null)
-      setAccessToken(null)
-      setRefreshToken(null)
+      console.error('Session validation error:', error);
+      localStorage.removeItem('user_id');
+      setUser(null);
+      setAccessToken(null);
+      setRefreshToken(null);
     }
-  }
+  };
 
-  const handleLogin = async () => {
-    setIsLoading(true)
-    showMessage('Redirecting to Google...', 'info')
-    
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/google/login`)
-      
-      if (!response.ok) {
-        throw new Error('Failed to initiate login')
-      }
-
-      const data = await response.json()
-      console.log('🔐 Login URL generated:', data.authorization_url)
-      window.location.href = data.authorization_url
-    } catch (error) {
-      console.error('Login error:', error)
-      showMessage(`Login failed: ${error.message}`, 'error')
-      setIsLoading(false)
-    }
-  }
 
   const handleLogout = async () => {
-    setIsLoading(true)
-    showMessage('Logging out...', 'info')
+    setIsLoading(true);
+    showMessage('Logging out...', 'info');
     
     try {
-      await fetch(`${BACKEND_URL}/api/auth/logout?user_id=${user.user_id}`, {
-        method: 'POST'
-      })
+      await authTokenManager.logout();
+      setUser(null);
+      setAccessToken(null);
+      setRefreshToken(null);
       
-      setUser(null)
-      setAccessToken(null)
-      setRefreshToken(null)
-      localStorage.removeItem('user_id')
-      
-      console.log('✅ LOGOUT SUCCESSFUL')
-      showMessage('Logged out successfully', 'success')
-      setTimeout(() => setStatusMessage(''), 2000)
+      console.log('✅ LOGOUT SUCCESSFUL');
+      showMessage('Logged out successfully', 'success');
+      setTimeout(() => setStatusMessage(''), 2000);
     } catch (error) {
-      console.error('Logout error:', error)
-      showMessage(`Logout failed: ${error.message}`, 'error')
+      console.error('Logout error:', error);
+      showMessage(`Logout failed: ${error.message}`, 'error');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleRefreshToken = async () => {
-    if (!refreshToken) {
-      showMessage('No refresh token available', 'error')
-      return
-    }
-
-    setIsLoading(true)
-    showMessage('Refreshing token...', 'info')
+    setIsLoading(true);
+    showMessage('Refreshing token...', 'info');
     
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ refresh_token: refreshToken })
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to refresh token')
-      }
-
-      const data = await response.json()
-      
-      if (data.tokens) {
-        setAccessToken(data.tokens.access_token)
-        setRefreshToken(data.tokens.refresh_token)
-        
-        console.log('✅ TOKEN REFRESH SUCCESSFUL')
-        console.log('New Access Token:', data.tokens.access_token)
-        console.log('New Refresh Token:', data.tokens.refresh_token)
-        
-        showMessage('Token refreshed successfully!', 'success')
-        setTimeout(() => setStatusMessage(''), 2000)
+      const refreshed = await authTokenManager.refreshAccessToken();
+      if (refreshed) {
+        updateAppStateFromAuthManager();
+        console.log('✅ TOKEN REFRESH SUCCESSFUL');
+        showMessage('Token refreshed successfully!', 'success');
+        setTimeout(() => setStatusMessage(''), 2000);
+      } else {
+        throw new Error('Failed to refresh token. Please login again.');
       }
     } catch (error) {
-      console.error('Token refresh error:', error)
-      showMessage(`Token refresh failed: ${error.message}`, 'error')
+      console.error('Token refresh error:', error);
+      showMessage(`Token refresh failed: ${error.message}`, 'error');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const showMessage = (message, type) => {
     setStatusMessage(message)
@@ -245,8 +205,8 @@ function App() {
         />
       ) : (
         <LoginSignupPage
-          isLoading={isLoading}
-          onLogin={handleLogin}
+          onLoginSuccess={handleOAuthCallback}
+          onLoginError={(error) => showMessage(`Login failed: ${error.message}`, 'error')}
         />
       )}
 
