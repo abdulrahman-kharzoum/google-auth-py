@@ -145,12 +145,15 @@ export function LandingPage({ onNavigateToDashboard }: LandingPageProps) {
 
               <div className="hidden md:flex items-center space-x-4">
                 {user ? (
-                  <button
-                    onClick={onNavigateToDashboard}
-                    className="gradient-button text-white px-6 py-2 rounded-lg transition shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 duration-300"
-                  >
-                    Dashboard
-                  </button>
+                  <>
+                    <span className="text-white">Welcome, {user.name || user.email}</span>
+                    <button
+                      onClick={onNavigateToDashboard}
+                      className="gradient-button text-white px-6 py-2 rounded-lg transition shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 duration-300"
+                    >
+                      Dashboard
+                    </button>
+                  </>
                 ) : (
                   <>
                     <button

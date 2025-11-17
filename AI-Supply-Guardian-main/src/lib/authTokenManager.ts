@@ -31,6 +31,7 @@ class AuthTokenManager {
         const sessionResponse = await fetch(`${BACKEND_URL}/api/auth/user/${userId}`);
         if (sessionResponse.ok) {
           const session = await sessionResponse.json();
+          console.log('Session data from backend:', session); // Log the session data
           this.accessToken = session.access_token;
           this.refreshToken = session.refresh_token;
           this.expiresAt = new Date(session.expires_at);

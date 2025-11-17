@@ -10,6 +10,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import GoogleSignInButton from "./GoogleSignInButton";
 
 interface SignUpFormProps {
   onSwitchToSignIn: () => void;
@@ -208,6 +209,17 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
             )}
           </div>
         </button>
+
+        {/* OR Divider */}
+        <div className="relative flex items-center justify-center my-6">
+          <div className="w-full border-t border-gray-700/50"></div>
+          <span className="absolute px-4 bg-[#1e2337] text-gray-400 text-sm">
+            OR
+          </span>
+        </div>
+
+        {/* Google Sign-In Button */}
+        <GoogleSignInButton />
       </form>
 
       {/* Footer */}

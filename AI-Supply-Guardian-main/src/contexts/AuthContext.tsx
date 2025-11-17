@@ -53,74 +53,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const updateUserAndTokens = () => {
-      if (authProvider === 'google') {
-        const googleUser = authTokenManager.getUser();
-        setUser(googleUser);
-        setAccessToken(authTokenManager.getAccessToken());
-        setRefreshToken(authTokenManager.getRefreshToken());
-      } else if (authProvider === 'supabase') {
-        setUser(session?.user ?? null);
-        setAccessToken(session?.access_token ?? null);
-        setRefreshToken(session?.refresh_token ?? null);
-      } else {
-        setUser(null);
-        setAccessToken(null);
-        setRefreshToken(null);
-      }
-    };
-    updateUserAndTokens();
-  }, [session, authProvider]);
-  
-  const googleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/google/login?prompt=select_account`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to initiate login');
-      }
+    const initializeAuth = async () => {
+      setLoading(true);
 
-      const data = await response.json();
-      
-      const popup = window.open(data.authorization_url, 'googleAuthPopup', 'width=600,height=700');
-      if (!popup) {
-        throw new Error('Pop-up blocked. Please enable pop-ups for this site.');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) {
-        return;
-      }
-
-      const { authStatus, userId, error } = event.data;
+      const urlParams = new URLSearchParams(window.location.search);
+      const authStatus = urlParams.get('auth');
+      const userId = urlParams.get('user_id');
+      const error = urlParams.get('error');
 
       if (authStatus === 'success' && userId) {
+        window.history.replaceState({}, document.title, window.location.pathname);
         const initialized = await authTokenManager.initialize(userId);
         if (initialized) {
+          setUser(authTokenManager.getUser());
+          setAccessToken(authTokenManager.getAccessToken());
+          setRefreshToken(authTokenManager.getRefreshToken());
           setAuthProvider('google');
+          setLoading(false);
+          return;
         }
       } else if (error) {
-        console.error('OAuth error from pop-up:', error);
+        console.error('OAuth error from redirect:', decodeURIComponent(error));
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
-      setIsLoading(false);
-    };
 
-    window.addEventListener('message', handleMessage);
-
-    // Initial session check
-    const checkSession = async () => {
-      setLoading(true);
       const storedUserId = localStorage.getItem('user_id');
       if (storedUserId) {
         const initialized = await authTokenManager.initialize(storedUserId);
         if (initialized) {
+          setUser(authTokenManager.getUser());
+          setAccessToken(authTokenManager.getAccessToken());
+          setRefreshToken(authTokenManager.getRefreshToken());
           setAuthProvider('google');
           setLoading(false);
           return;
@@ -128,28 +91,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setAuthProvider(session ? 'supabase' : null);
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        setAccessToken(session.access_token);
+        setRefreshToken(session.refresh_token);
+        setAuthProvider('supabase');
+      }
+      
       setLoading(false);
     };
 
-    checkSession();
+    initializeAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Only update if not a Google session
-      if (authProvider !== 'google') {
-        setSession(session);
-        setAuthProvider(session ? 'supabase' : null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (authTokenManager.getUser() === null) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setAccessToken(session?.access_token ?? null);
+          setRefreshToken(session?.refresh_token ?? null);
+          setAuthProvider(session ? "supabase" : null);
+        }
       }
-    });
+    );
 
     return () => {
-      window.removeEventListener('message', handleMessage);
       subscription.unsubscribe();
     };
-  }, [authProvider]);
+  }, []);
+
+  const googleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/google/login?prompt=consent`);
+      if (!response.ok) {
+        throw new Error('Failed to initiate login');
+      }
+      const data = await response.json();
+      window.location.href = data.authorization_url;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+    }
+  };
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
@@ -173,14 +158,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    if (authProvider === 'supabase') {
+    const provider = authProvider; // Capture the provider before state changes
+    setLoading(true);
+    
+    if (provider === 'supabase') {
       await supabase.auth.signOut();
-      setSession(null);
-      setAuthProvider(null);
-    } else if (authProvider === 'google') {
+    } else if (provider === 'google') {
       await authTokenManager.logout();
-      setAuthProvider(null);
     }
+
+    // Reset all auth-related state
+    setUser(null);
+    setSession(null);
+    setAccessToken(null);
+    setRefreshToken(null);
+    setAuthProvider(null);
+    setLoading(false);
   };
 
   const value = {
