@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import authTokenManager from '../utils/authTokenManager';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8050';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8060';
 
 /**
  * Google OAuth2 Login Button Component
@@ -73,23 +73,23 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError, type = "login" }) => {
     try {
       // Get user session from backend
       const response = await fetch(`${BACKEND_URL}/api/auth/user/${userId}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to get user session');
       }
 
       const sessionData = await response.json();
-      
+
       // Store in token manager
       authTokenManager.storeSession(sessionData);
-      
+
       const userData = authTokenManager.getUser();
       setUser(userData);
-      
+
       if (onLoginSuccess) {
         onLoginSuccess(userData.user_id); // Pass userId directly to onLoginSuccess
       }
-      
+
       console.log('✅ Login successful:', userData);
     } catch (error) {
       console.error('OAuth callback error:', error);
@@ -112,13 +112,13 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError, type = "login" }) => {
 
       // Get authorization URL from backend, including the prompt parameter
       const response = await fetch(`${BACKEND_URL}/api/auth/google/login?prompt=${promptValue}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to initiate login');
       }
 
       const data = await response.json();
-      
+
       // Open Google OAuth in a pop-up window
       const popup = window.open(data.authorization_url, 'googleAuthPopup', 'width=600,height=700');
       if (!popup) {
@@ -154,9 +154,9 @@ const GoogleAuthButton = ({ onLoginSuccess, onLoginError, type = "login" }) => {
       <div className="google-auth-container" style={styles.container}>
         <div style={styles.userInfo}>
           {user.picture && (
-            <img 
-              src={user.picture} 
-              alt={user.name} 
+            <img
+              src={user.picture}
+              alt={user.name}
               style={styles.avatar}
             />
           )}

@@ -4,7 +4,7 @@ import LoginSignupPage from './pages/LoginSignupPage'
 import ProfilePage from './pages/ProfilePage'
 import authTokenManager from './utils/authTokenManager'
 
-const BACKEND_URL = 'http://localhost:8050'
+const BACKEND_URL = 'http://localhost:8060'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -105,7 +105,7 @@ function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/validate?user_id=${userId}`);
       const data = await response.json();
-      
+
       if (data.valid && data.user) {
         // If valid, ensure authTokenManager is initialized and update App state
         await authTokenManager.initialize(userId);
@@ -129,13 +129,13 @@ function App() {
   const handleLogout = async () => {
     setIsLoading(true);
     showMessage('Logging out...', 'info');
-    
+
     try {
       await authTokenManager.logout();
       setUser(null);
       setAccessToken(null);
       setRefreshToken(null);
-      
+
       console.log('✅ LOGOUT SUCCESSFUL');
       showMessage('Logged out successfully', 'success');
       setTimeout(() => setStatusMessage(''), 2000);
@@ -150,7 +150,7 @@ function App() {
   const handleRefreshToken = async () => {
     setIsLoading(true);
     showMessage('Refreshing token...', 'info');
-    
+
     try {
       const refreshed = await authTokenManager.refreshAccessToken();
       if (refreshed) {

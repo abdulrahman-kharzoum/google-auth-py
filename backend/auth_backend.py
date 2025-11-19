@@ -78,6 +78,8 @@ origins = [
     "http://localhost:3035",
     "http://localhost:8060",
     "http://localhost:5173",
+    "http://localhost:3032",
+    "http://localhost:3033",
     "http://ai-supply-guardian.zentraid.com",
     "https://ai-supply-guardian.zentraid.com",
     os.getenv("FRONTEND_URL", "https://yourdomain.com"),

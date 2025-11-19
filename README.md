@@ -88,7 +88,7 @@ google-oauth-test-project/
    - Application type: "Web application"
    - Name: "OAuth Test Client"
    - Authorized redirect URIs:
-     - Add: `http://localhost:8050/api/auth/google/callback`
+     - Add: `http://localhost:8060/api/auth/google/callback`
    - Click "Create"
    - **Save the Client ID and Client Secret** (you'll need these!)
 
@@ -131,16 +131,16 @@ google-oauth-test-project/
    # Paste your Google credentials from Step 1
    GOOGLE_CLIENT_ID=YOUR_CLIENT_ID_HERE.apps.googleusercontent.com
    GOOGLE_CLIENT_SECRET=YOUR_CLIENT_SECRET_HERE
-   GOOGLE_REDIRECT_URI=http://localhost:8050/api/auth/google/callback
+   GOOGLE_REDIRECT_URI=http://localhost:8060/api/auth/google/callback
    
    # Frontend URL
-   FRONTEND_URL=http://localhost:5173
+   FRONTEND_URL=http://localhost:3033
    
    # Paste your encryption key from Step 3.4
    ENCRYPTION_KEY=YOUR_ENCRYPTION_KEY_HERE
    
    # Server port
-   PORT=8050
+   PORT=8060
    ```
 
 7. **Run the backend**
@@ -150,7 +150,7 @@ google-oauth-test-project/
    
    You should see:
    ```
-   INFO:     Uvicorn running on http://0.0.0.0:8050
+   INFO:     Uvicorn running on http://0.0.0.0:8060
    ```
 
 ### Step 3: Frontend Setup
@@ -176,60 +176,60 @@ The frontend uses Vite for development.
    ```
      VITE v5.x.x  ready in XXX ms
    
-     ➜  Local:   http://localhost:5173/
+     ➜  Local:   http://localhost:3033/
      ➜  Network: use --host to expose
      ➜  press h + enter to show help
    ```
  
 4. **Open browser**
-   - Navigate to: **http://localhost:5173** (or the port shown in the terminal)
+   - Navigate to: **http://localhost:3033** (or the port shown in the terminal)
  
 ## 🎯 Testing the Application
  
 ### Test Complete OAuth Flow (Pop-up)
  
-1. **Open** http://localhost:5173 in your browser
+1. **Open** http://localhost:3033 in your browser
  
 2. **Click "Sign in with Google"**
-    - A pop-up window will appear for Google's login page
-    - Sign in with your Google account
-    - If you have previously granted permissions, you should not be prompted again.
-    - If you are prompted, select your account.
+     - A pop-up window will appear for Google's login page
+     - Sign in with your Google account
+     - If you have previously granted permissions, you should not be prompted again.
+     - If you are prompted, select your account.
  
 3. **Click "Sign up with Google"**
-    - A pop-up window will appear for Google's login page
-    - Sign in with your Google account
-    - You should be prompted to grant permissions (consent screen).
+     - A pop-up window will appear for Google's login page
+     - Sign in with your Google account
+     - You should be prompted to grant permissions (consent screen).
  
 4. **After authorization**
-    - The pop-up window will close automatically
-    - The main window will update, and you should see your profile (name, email, picture)
+     - The pop-up window will close automatically
+     - The main window will update, and you should see your profile (name, email, picture)
  
 5. **Test logout**
-    - Click "Logout" button
-    - You should be logged out
-    - Tokens are revoked on the backend
+     - Click "Logout" button
+     - You should be logged out
+     - Tokens are revoked on the backend
  
 6. **Test session persistence**
-    - Login again
-    - Close and reopen browser
-    - Navigate to http://localhost:5173
-    - You should still be logged in (session restored)
+     - Login again
+     - Close and reopen browser
+     - Navigate to http://localhost:3033
+     - You should still be logged in (session restored)
  
 ### Verify Backend
  
 1. **Check backend logs** for successful operations (run `python auth_backend.py` in the `backend` directory):
    ```
-   INFO:     Uvicorn running on http://0.0.0.0:8050
+   INFO:     Uvicorn running on http://0.0.0.0:8060
    ```
  
 2. **Test API endpoints directly**:
    ```bash
    # Health check
-   curl http://localhost:8050
+   curl http://localhost:8060
    
    # Get login URL
-   curl http://localhost:8050/api/auth/google/login
+   curl http://localhost:8060/api/auth/google/login
    ```
  
 ## 🐛 Troubleshooting
@@ -239,14 +239,14 @@ The frontend uses Vite for development.
 **Solution:**
 1. Go to Google Cloud Console → Credentials
 2. Edit your OAuth client
-3. Ensure redirect URI is exactly: `http://localhost:8050/api/auth/google/callback`
+3. Ensure redirect URI is exactly: `http://localhost:8060/api/auth/google/callback`
 4. Save and wait 5 minutes for changes to propagate
  
 ### Issue: "CORS Error"
  
 **Solution:**
-- Make sure backend is running on port 8050
-- Make sure frontend is running on port 5173 (or the port shown by `npm run dev`)
+- Make sure backend is running on port 8060
+- Make sure frontend is running on port 3033 (or the port shown by `npm run dev`)
 - Check [`backend/auth_backend.py`](backend/auth_backend.py:26) has correct CORS origins
  
 ### Issue: "Access blocked: This app's request is invalid"
@@ -261,13 +261,13 @@ The frontend uses Vite for development.
  
 **Solution:**
 ```bash
-# Find process using port (e.g., 5173 for frontend, 8050 for backend)
+# Find process using port (e.g., 3033 for frontend, 8060 for backend)
 # Windows:
-netstat -ano | findstr :5173
+netstat -ano | findstr :3033
 taskkill /PID <PID> /F
  
 # Mac/Linux:
-lsof -i :5173
+lsof -i :3033
 kill -9 <PID>
  
 # Or change the port in frontend/vite.config.js or backend/.env
@@ -276,10 +276,7 @@ kill -9 <PID>
 ## 📚 API Endpoints
  
 ### Authentication Endpoints
- 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Health check |
+
 | GET | `/api/auth/google/login` | Get Google OAuth URL |
 | GET | `/api/auth/google/callback` | OAuth callback handler (handles pop-up messages) |
 | POST | `/api/auth/refresh` | Refresh access token |

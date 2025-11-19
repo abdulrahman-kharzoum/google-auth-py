@@ -3,7 +3,7 @@
  * Handles automatic token refresh and storage
  */
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8050';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8060';
 
 class AuthTokenManager {
   constructor() {
@@ -22,10 +22,10 @@ class AuthTokenManager {
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/validate?user_id=${userId}`);
       const data = await response.json();
-      
+
       if (data.valid) {
         this.user = data.user;
-        
+
         // Get full session data
         const sessionResponse = await fetch(`${BACKEND_URL}/api/auth/user/${userId}`);
         if (sessionResponse.ok) {
@@ -34,17 +34,17 @@ class AuthTokenManager {
           this.refreshToken = session.refresh_token;
           this.expiresAt = new Date(session.expires_at);
           this.scopes = session.scopes || []; // Store scopes
-          
+
           // Start auto-refresh
           this.scheduleTokenRefresh();
         }
-        
+
         return true;
       } else if (data.requires_refresh && this.refreshToken) {
         // Token expired, try to refresh
         return await this.refreshAccessToken();
       }
-      
+
       return false;
     } catch (error) {
       console.error('Failed to initialize token manager:', error);
@@ -66,10 +66,10 @@ class AuthTokenManager {
     this.refreshToken = userData.refresh_token;
     this.expiresAt = new Date(userData.expires_at);
     this.scopes = userData.scopes || []; // Store scopes
-    
+
     // Store user ID in localStorage
     localStorage.setItem('user_id', userData.user_id);
-    
+
     // Schedule token refresh
     this.scheduleTokenRefresh();
   }
@@ -149,16 +149,16 @@ class AuthTokenManager {
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.tokens) {
         this.accessToken = data.tokens.access_token;
         this.refreshToken = data.tokens.refresh_token;
-        
+
         // Calculate new expiry time
         const expiresIn = data.tokens.expires_in || 3600;
         this.expiresAt = new Date(Date.now() + expiresIn * 1000);
         this.scopes = data.tokens.scope ? data.tokens.scope.split(' ') : []; // Update scopes
-        
+
         // Update user info
         if (data.user) {
           this.user = {
@@ -168,14 +168,14 @@ class AuthTokenManager {
             picture: data.user.picture
           };
         }
-        
+
         // Schedule next refresh
         this.scheduleTokenRefresh();
-        
+
         console.log('✅ Token refreshed successfully');
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Error refreshing token:', error);
@@ -199,7 +199,7 @@ class AuthTokenManager {
 
     const now = new Date();
     const expiresIn = this.expiresAt.getTime() - now.getTime();
-    
+
     // Refresh 5 minutes before expiry, or immediately if already expired
     const refreshIn = Math.max(0, expiresIn - 5 * 60 * 1000);
 
@@ -237,12 +237,12 @@ class AuthTokenManager {
     this.refreshToken = null;
     this.expiresAt = null;
     this.scopes = [];
-    
+
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
     }
-    
+
     localStorage.removeItem('user_id');
   }
 
